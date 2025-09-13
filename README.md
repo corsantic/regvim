@@ -140,12 +140,6 @@ After installing RegVim, open any file in Neovim and try these:
 :%s/(start).*(end)/\1-\2/ → :%s/\(start\).*\(end\)/\1-\2/ # Extract parts
 ```
 
-#### 3. **Watch the Magic Happen**
-- **Type normally** using familiar regex syntax
-- **Watch it convert** in real-time as you type
-- **See live preview** with Vim's native `inccommand`
-- **Execute as usual** with Enter
-
 ### 🎮 Interactive Example
 
 1. **Open Neovim with a text file:**
@@ -233,10 +227,6 @@ RegVim uses Neovim's `CmdlineChanged` autocommand to monitor command line input 
 
 - Neovim 0.5+ (for Lua API and autocommands)
 - No external dependencies
-
-## License
-
-MIT License - Feel free to use and modify as needed.
 
 ## Contributing
 
