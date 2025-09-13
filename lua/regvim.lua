@@ -10,6 +10,10 @@ M.config = {
   convert_key = '<Tab>',
 }
 
+local function _should_map(cmdline)
+  return cmdline:match("^%s*s/") or cmdline:match("^%s*%%s/")
+end
+
 -- Handle Tab key conversion - escape only the character before cursor
 function M._handle_tab_conversion()
   if not M.config or not M.config.enabled then
@@ -22,7 +26,7 @@ function M._handle_tab_conversion()
 
   -- Only work in search and substitute contexts
   if not (cmdtype == "/" or cmdtype == "?" or
-          (cmdtype == ":" and (cmdline:match("^%s*s/") or cmdline:match("^%s*%%s/")))) then
+        (cmdtype == ":" and (_should_map(cmdline)))) then
     return
   end
 
@@ -52,7 +56,8 @@ function M._handle_tab_conversion()
 
     if M.config.show_conversion then
       vim.schedule(function()
-        vim.api.nvim_echo({{"RegVim: Escaped '" .. char_before .. "' to '\\" .. char_before .. "'", "Comment"}}, false, {})
+        vim.api.nvim_echo({ { "RegVim: Escaped '" .. char_before .. "' to '\\" .. char_before .. "'", "Comment" } },
+          false, {})
       end)
     end
   end
@@ -63,10 +68,38 @@ local function setup_keymap()
   -- Clear any existing autocommands
   vim.api.nvim_create_augroup("RegVim", { clear = true })
 
-  -- Set up key mapping for character escaping in command mode
-  vim.cmd(string.format([[
-    cnoremap %s <Cmd>lua require("regvim")._handle_tab_conversion()<CR>
-  ]], M.config.convert_key))
+  local is_mapped = false
+
+  -- For : commands, watch what they type and map/unmap dynamically
+  vim.api.nvim_create_autocmd("CmdlineChanged", {
+    group = "RegVim",
+    callback = function()
+      local cmdtype = vim.fn.getcmdtype()
+      if cmdtype == ":" then
+        local cmdline = vim.fn.getcmdline()
+        local should_map = _should_map(cmdline)
+        if should_map and not is_mapped then
+          vim.keymap.set('c', M.config.convert_key, function()
+            M._handle_tab_conversion()
+          end, { buffer = false })
+          is_mapped = true
+        elseif not should_map and is_mapped then
+          pcall(vim.keymap.del, 'c', M.config.convert_key)
+          is_mapped = false
+        end
+      end
+    end,
+  })
+
+  vim.api.nvim_create_autocmd("CmdlineLeave", {
+    group = "RegVim",
+    callback = function()
+      if is_mapped then
+        pcall(vim.keymap.del, 'c', M.config.convert_key)
+        is_mapped = false
+      end
+    end,
+  })
 end
 
 -- Initialize RegVim
