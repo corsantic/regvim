@@ -11,7 +11,7 @@ M.config = {
 }
 
 local function _should_map(cmdline)
-  return cmdline:match("^%s*s/") or cmdline:match("^%s*%%s/")
+  return cmdline:match("^%s*s/") or cmdline:match("^%s*%%s/") or cmdline:match("^%s*'<,'>s/")
 end
 
 -- Handle Tab key conversion - escape only the character before cursor
