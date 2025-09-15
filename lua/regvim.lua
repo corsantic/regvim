@@ -50,9 +50,7 @@ function M._handle_tab_conversion()
   if needs_escape then
     -- Insert backslash before the character
     local new_cmdline = cmdline:sub(1, char_pos - 1) .. "\\" .. cmdline:sub(char_pos)
-    vim.fn.setcmdline(new_cmdline)
-    -- Move cursor forward by 1 to account for the added backslash
-    vim.fn.setcmdpos(cmdpos + 1)
+    vim.fn.setcmdline(new_cmdline, cmdpos + 1)
 
     if M.config.show_conversion then
       vim.schedule(function()
