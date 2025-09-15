@@ -33,6 +33,7 @@ Works in `/` search and `:s/` substitute modes.
 ```lua
 require("regvim").setup({
   convert_key = '<Tab>', -- Change key if needed
+  escape_characters = { "(", ")", "+", "?", "|", "{", "}" }, -- Change default characters as needed
 })
 ```
 

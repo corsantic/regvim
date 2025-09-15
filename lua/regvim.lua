@@ -6,12 +6,22 @@ local M = {}
 -- Configuration
 M.config = {
   enabled = true,
+  escape_characters = { "(", ")", "+", "?", "|", "{", "}" },
   show_conversion = false,
   convert_key = '<Tab>',
 }
+local fallback_match_regex = "[%(%)%+%?|{}]"
 
 local function _should_map(cmdline)
   return cmdline:match("^%s*s/") or cmdline:match("^%s*%%s/") or cmdline:match("^%s*'<,'>s/")
+end
+
+local function create_match_regex()
+  local chars = {}
+  for _, char in ipairs(M.config.escape_characters) do
+    table.insert(chars, vim.pesc(char))
+  end
+  return "[" .. table.concat(chars) .. "]"
 end
 
 -- Handle Tab key conversion - escape only the character before cursor
@@ -40,7 +50,13 @@ function M._handle_tab_conversion()
 
   -- Check if it's a character that needs escaping and isn't already escaped
   local needs_escape = false
-  if char_before:match("[%(%)%+%?|{}]") then
+  local char_match_regex = fallback_match_regex;
+
+  if #M.config.escape_characters > 0 then
+    char_match_regex = create_match_regex();
+  end
+
+  if char_before:match(char_match_regex) then
     -- Check if it's already escaped (character before it is \)
     if char_pos == 1 or cmdline:sub(char_pos - 1, char_pos - 1) ~= "\\" then
       needs_escape = true
@@ -61,13 +77,18 @@ function M._handle_tab_conversion()
   end
 end
 
+local function generate_handle_key()
+  vim.keymap.set('c', M.config.convert_key, function()
+    M._handle_tab_conversion()
+  end, { buffer = false })
+  return true
+end
 -- Set up the key mapping
 local function setup_keymap()
   -- Clear any existing autocommands
   vim.api.nvim_create_augroup("RegVim", { clear = true })
 
   local is_mapped = false
-
   -- For : commands, watch what they type and map/unmap dynamically
   vim.api.nvim_create_autocmd("CmdlineChanged", {
     group = "RegVim",
@@ -77,13 +98,15 @@ local function setup_keymap()
         local cmdline = vim.fn.getcmdline()
         local should_map = _should_map(cmdline)
         if should_map and not is_mapped then
-          vim.keymap.set('c', M.config.convert_key, function()
-            M._handle_tab_conversion()
-          end, { buffer = false })
-          is_mapped = true
+          is_mapped = generate_handle_key()
         elseif not should_map and is_mapped then
           pcall(vim.keymap.del, 'c', M.config.convert_key)
           is_mapped = false
+        end
+      elseif cmdtype == "/" or cmdtype == "?" then
+        -- For search modes, always map the key
+        if not is_mapped then
+          is_mapped = generate_handle_key()
         end
       end
     end,
