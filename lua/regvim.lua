@@ -81,8 +81,12 @@ local function generate_handle_key()
   vim.keymap.set('c', M.config.convert_key, function()
     M._handle_tab_conversion()
   end, { buffer = false })
-  return true
 end
+
+local function destroy_convert_key()
+  pcall(vim.keymap.del, 'c', M.config.convert_key)
+end
+
 -- Set up the key mapping
 local function setup_keymap()
   -- Clear any existing autocommands
@@ -98,15 +102,17 @@ local function setup_keymap()
         local cmdline = vim.fn.getcmdline()
         local should_map = _should_map(cmdline)
         if should_map and not is_mapped then
-          is_mapped = generate_handle_key()
+          generate_handle_key()
+          is_mapped = true
         elseif not should_map and is_mapped then
-          pcall(vim.keymap.del, 'c', M.config.convert_key)
+          destroy_convert_key()
           is_mapped = false
         end
       elseif cmdtype == "/" or cmdtype == "?" then
         -- For search modes, always map the key
         if not is_mapped then
-          is_mapped = generate_handle_key()
+          generate_handle_key()
+          is_mapped = true
         end
       end
     end,
@@ -116,7 +122,7 @@ local function setup_keymap()
     group = "RegVim",
     callback = function()
       if is_mapped then
-        pcall(vim.keymap.del, 'c', M.config.convert_key)
+        destroy_convert_key()
         is_mapped = false
       end
     end,
